@@ -40,87 +40,71 @@ Step 4 : Test for the XOR patterns.
 ```python
 import numpy as np
 import pandas as pd
+import io
 import matplotlib.pyplot as plt
-from mpl_toolkits import mplot3d
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 
-class Perceptron:
-  def __init__(self,learning_rate=0.1):
-    self.learning_rate = learning_rate
-    self.b=0.0
-    self.w=None
-    self.misclassified_samples=[]
+x=np.array([[0,0,1,1],[0,1,0,1]])
+y=np.array([[0,1,1,0]])
+n_x=2
+n_y=1
+n_h=2
+m=x.shape[1]
+lr=0.1
+np.random.seed(2)
+w1=np.random.rand(n_h,n_x)
+w2=np.random.rand(n_y,n_h)
+losses=[]
 
-  def fit(self,x:np.array,y:np.array,n_iter=10):
-    self.b=0.0;
-    self.w=np.zeros(x.shape[1])
-    self.misclassified_samples=[]
+def sigmoid(z):
+z=1/(1+np.exp(-z))
+return z
 
-    for _ in range(n_iter):
-      errors=0
-      for xi,yi in zip(x,y):
-        update = self.learning_rate*(yi-self.predict(xi))
-        self.b+=update
-        self.w+=update*xi
-        errors+=int(update!=0.0)
-      self.misclassified_samples.append(errors)
+def forward_prop(w1,w2,x):
+z1=np.dot(w1,x)
+a1=sigmoid(z1)
+z2=np.dot(w2,a1)
+a2=sigmoid(z2)
+return z1,a1,z2,a2
 
-  def f(self,x:np.array)->float:
-    return np.dot(x,self.w)+self.b
+def back_prop(m,w1,w2,z1,a1,z2,a2,y):
+dz2=a2-y
+dw2=np.dot(dz2,a1.T)/m
+dz1=np.dot(w2.T,dz2)*a1*(1-a1)
+dw1=np.dot(dz1,x.T)/m
+dw1=np.reshape(dw1,w1.shape)
+dw2=np.reshape(dw2,w2.shape)
+return dz2,dw2,dz1,dw1
 
-  def predict(self,x:np.array):
-    return np.where(self.f(x)>= 0,1,-1)
+iterations=10000
+for i in range(iterations):
+z1,a1,z2,a2=forward_prop(w1,w2,x)
+loss= -(1/m)*np.sum(y*np.log(a2)+(1-y)*np.log(1-a2))
+losses.append(loss)
+da2,dw2,dz1,dw1=back_prop(m,w1,w2,z1,a1,z2,a2,y)
+w2=w2-lr*dw2
+w1=w1-lr*dw1
 
-url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data'
+plt.plot(losses)
+plt.xlabel("EPOCHS")
+plt.ylabel("Loss value")
 
-df=pd.read_csv(url,header=None)
-print(df.head())
+def predict(w1,w2,input):
+z1,a1,z2,a2=forward_prop(w1,w2,test)
+a2=np.squeeze(a2)
+if a2>=0.5:
+print([i[0] for i in input],1)
+else:
+print([i[0] for i in input],0)
 
-df.describe()
-
-y=df.iloc[:,4].values
-x=df.iloc[:,0:3].values
-
-fig=plt.figure()
-ax=plt.axes(projection='3d')
-ax.set_title("Iris dataset")
-ax.set_xlabel("sepal_length (cm)")
-ax.set_ylabel("sepal_width (cm)")
-ax.set_zlabel("petal_length (cm)")
-ax.scatter(x[:50, 0], x[:50, 1], x[:50, 2], color='red', marker='o', s=4, label="Iris Setosa")
-ax.scatter(x[50:100,0],x[50:100,1],x[50:100,2],color='blue',marker='^',s=4,label="Iris Versicolor")
-ax.scatter(x[100:150,0],x[100:150,1],x[100:150,2],color='green',marker='x',s=4,label="Iris Virginica")
-plt.legend(loc='upper left')
-plt.show()
-
-x=x[0:100,0:2]
-y=y[0:100]
-
-plt.figure(figsize=(10,6))
-plt.scatter(x[:50, 0], x[:50, 1], color='red', marker='o', label='Setosa')
-plt.scatter(x[50:100, 0], x[50:100, 1], color='blue', marker='x', label='Versicolour')
-plt.xlabel("Sepal length")
-plt.ylabel("Petal length")
-plt.legend(loc='upper left')
-plt.show()
-
-y=np.where(y=='Iris-setosa',1,-1)
-x[:,0] = (x[:,0]-x[:,0].mean())/x[:,0].std()
-x[:,1] = (x[:,1]-x[:,1].mean())/x[:,1].std()
-
-x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.3,random_state=0)
-
-classifier = Perceptron(learning_rate=0.01)
-classifier.fit(x_train,y_train)
-
-print("Accuracy:", accuracy_score(classifier.predict(x_test), y_test) * 100)
-
-plt.figure(figsize=(4, 4))
-plt.plot(range(1, len(classifier.misclassified_samples) + 1), classifier.misclassified_samples, marker='o')
-plt.xlabel('Epoch')
-plt.ylabel('Errors')
-plt.show()
+print('Input','Output')
+test=np.array([[1],[0]])
+predict(w1,w2,test)
+test=np.array([[1],[1]])
+predict(w1,w2,test)
+test=np.array([[0],[1]])
+predict(w1,w2,test)
+test=np.array([[0],[0]])
+predict(w1,w2,test)
 ```
 
 <H3>Output:</H3>
